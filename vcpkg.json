@@ -1,0 +1,19 @@
+{
+  "dependencies": [
+    "fmt",
+    "opencv4",
+    {
+      "name": "depthai",
+      "features": [
+        "opencv-support",
+        "curl-support",
+        "protobuf-support",
+        "backward",
+        "apriltag",
+        "xlink",
+        "xlink-usb",
+        "remote-connection-support"
+      ]
+    }
+  ]
+}

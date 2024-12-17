@@ -1,0 +1,6 @@
+[submodule "3rdparty/depthai"]
+	path = 3rdparty/depthai
+	url = https://github.com/luxonis/depthai-core.git
+[submodule "3rdparty/vcpkg"]
+	path = 3rdparty/vcpkg
+	url = https://github.com/microsoft/vcpkg.git
