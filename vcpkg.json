@@ -9,10 +9,8 @@
         "curl-support",
         "protobuf-support",
         "backward",
-        "apriltag",
         "xlink",
-        "xlink-usb",
-        "remote-connection-support"
+        "xlink-usb"
       ]
     }
   ]
