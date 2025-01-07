@@ -5,6 +5,8 @@ project(cmake_example)
 find_package(depthai CONFIG REQUIRED)
 find_package(OpenCV CONFIG REQUIRED)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 add_executable(example src/main.cpp)
 
 target_link_libraries(example PRIVATE depthai::core)
