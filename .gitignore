@@ -1,3 +1,8 @@
 build
 .env
 .cache
+src/高さ算出.xlsx
+/build
+/plog
+/3dparty
+

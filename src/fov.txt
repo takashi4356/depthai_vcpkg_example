@@ -1,0 +1,42 @@
+<depthai.CalibrationHandler object at 0x7ffed95067b0>
+<depthai.Device object at 0x7ffed9470370>
+[<CameraBoardSocket.CAM_A: 0>, <CameraBoardSocket.CAM_B: 1>, <CameraBoardSocket.CAM_C: 2>]
+FOV measurement from calib (e.g. after undistortion):
+CameraBoardSocket.CAM_A
+Horizontal FOV: 65.83454099511924
+Vertical FOV: 40.016987926249946
+Diagonal FOV: 73.2404378012276
+
+FOV measurement with optimal camera matrix and alpha=1 (e.g. full sensor FOV, without undistortion):
+CameraBoardSocket.CAM_A
+Horizontal FOV: 65.20044123678812
+Vertical FOV: 39.57105128573451
+Diagonal FOV: 72.62639674388035
+
+=============
+FOV measurement from calib (e.g. after undistortion):
+CameraBoardSocket.CAM_B
+Horizontal FOV: 73.60430076942926
+Vertical FOV: 50.12123539223249
+Diagonal FOV: 82.81778904235274
+
+FOV measurement with optimal camera matrix and alpha=1 (e.g. full sensor FOV, without undistortion):
+CameraBoardSocket.CAM_B
+Horizontal FOV: 74.52580949284605
+Vertical FOV: 50.86060974128772
+Diagonal FOV: 83.74580490978673
+
+=============
+FOV measurement from calib (e.g. after undistortion):
+CameraBoardSocket.CAM_C
+Horizontal FOV: 73.60264972832742
+Vertical FOV: 50.119914678842726
+Diagonal FOV: 82.81806473383365
+
+FOV measurement with optimal camera matrix and alpha=1 (e.g. full sensor FOV, without undistortion):
+CameraBoardSocket.CAM_C
+Horizontal FOV: 74.85688617875716
+Vertical FOV: 51.127347119444245
+Diagonal FOV: 84.18468913831055
+
+=============

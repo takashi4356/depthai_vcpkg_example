@@ -1,0 +1,78 @@
+/*合致する座標を見つけ出すために、まずは二つの形状をスケーリングして正規化します。その後、一方の形状を基準にして、もう一方の形状の各頂点を回転させながら最も距離が小さくなるマッチングを探します。このプロセスでは、形状の回転と平行移動を考慮に入れます。以下のステップで実装します：
+二つの形状をスケーリングして正規化する。
+基準となる形状の各頂点に対して、もう一方の形状を回転させながら最も距離が小さくなる頂点を探す。
+最も距離が小さい頂点のペアを出力する。
+このアプローチでは、形状の回転をシンプルに扱うために、回転行列を使用します。ただし、完全なテンプレートマッチングアルゴリズムは複雑であり、ここでは基本的なアイデアのみを示します。
+このコードは、二つのスケーリングされた五角形の頂点座標集合から、最も距離が小さい頂点のペアを見つけ出し、そのインデックスを出力します。この方法は、形状の回転や反転を考慮していませんが、基本的なマッチングのアイデアを示しています。より高度なマッチングを行うには、形状の回転や反転を考慮したアルゴリズムを実装する必要があります。
+*/
+#include <iostream>
+#include <vector>
+#include <cmath>
+#include <limits>
+
+// 二点間の距離を計算する関数
+double distance(const std::pair<double, double>& p1, const std::pair<double, double>& p2) {
+    return std::sqrt(std::pow(p2.first - p1.first, 2) + std::pow(p2.second - p1.second, 2));
+}
+
+// 形状をスケーリングする関数
+void scaleShape(std::vector<std::pair<double, double>>& shape) {
+    double minX = std::numeric_limits<double>::max();
+    double maxX = std::numeric_limits<double>::min();
+    double minY = std::numeric_limits<double>::max();
+    double maxY = std::numeric_limits<double>::min();
+
+    // バウンディングボックスの計算
+    for (const auto& point : shape) {
+        minX = std::min(minX, point.first);
+        maxX = std::max(maxX, point.first);
+        minY = std::min(minY, point.second);
+        maxY = std::max(maxY, point.second);
+    }
+
+    double width = maxX - minX;
+    double height = maxY - minY;
+    double scale = std::max(width, height);
+
+    // 形状のスケーリング
+    for (auto& point : shape) {
+        point.first = (point.first - minX) / scale;
+        point.second = (point.second - minY) / scale;
+    }
+}
+
+// 最も合致する座標のペアを見つける関数
+std::pair<int, int> findBestMatchingPair(const std::vector<std::pair<double, double>>& shape1, const std::vector<std::pair<double, double>>& shape2) {
+    double minDistance = std::numeric_limits<double>::max();
+    std::pair<int, int> bestPair;
+
+    for (int i = 0; i < shape1.size(); ++i) {
+        for (int j = 0; j < shape2.size(); ++j) {
+            double dist = distance(shape1[i], shape2[j]);
+            if (dist < minDistance) {
+                minDistance = dist;
+                bestPair = {i, j};
+            }
+        }
+    }
+
+    return bestPair;
+}
+
+int main() {
+    // 二つの五角形の頂点座標を定義
+    std::vector<std::pair<double, double>> pentagon1 = {{0, 0}, {1, 0}, {1.5, std::sqrt(0.75)}, {1, std::sqrt(3)}, {0, std::sqrt(3)}};
+    std::vector<std::pair<double, double>> pentagon2 = {{0.1, 0.1}, {1.1, 0.1}, {1.6, std::sqrt(0.75) + 0.1}, {1.1, std::sqrt(3) + 0.1}, {0.1, std::sqrt(3) + 0.1}};
+
+    // 形状をスケーリング
+    scaleShape(pentagon1);
+    scaleShape(pentagon2);
+
+    // 最も合致する座標のペアを見つける
+    std::pair<int, int> bestPair = findBestMatchingPair(pentagon1, pentagon2);
+
+    // 結果を表示
+    std::cout << "Best matching pair of points: Pentagon1 Index " << bestPair.first << " and Pentagon2 Index " << bestPair.second << std::endl;
+
+    return 0;
+}

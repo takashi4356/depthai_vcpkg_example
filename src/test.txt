@@ -1,0 +1,189 @@
+#!/usr/bin/env python3
+
+import cv2
+import depthai as dai
+import numpy as np
+import math
+
+
+# 画像の傾き検出
+# @return 水平からの傾き角度
+
+def img_rotate(img_p,arg_p):
+    arg = int(get_degree(img_p))
+    #高さを定義
+    height = img_p.shape[0]                         
+    #幅を定義
+    width = img_p.shape[1]  
+    #回転の中心を指定                          
+    center = (int(width/2), int(height/2))        #getRotationMatrix2D関数を使用
+    trans = cv2.getRotationMatrix2D(center, arg_p , 1)
+    #アフィン変換
+    image_r = cv2.warpAffine(img_p, trans, (width,height))
+    return image_r
+
+def get_degree(img):
+    l_img = img.copy()
+    gray_image = cv2.cvtColor(l_img, cv2.COLOR_BGR2GRAY)
+    edges = cv2.Canny(gray_image,50,150,apertureSize = 3)
+    minLineLength = 30
+    maxLineGap = 5
+    lines = cv2.HoughLinesP(edges,1,np.pi/180,100,minLineLength,maxLineGap)
+
+    sum_arg = 0;
+    count = 0;
+    HORIZONTAL = 0
+    if (lines is not None):
+        for line in lines:
+            for x1,y1,x2,y2 in line:
+                cv2.line(edges,(x1,y1),(x2,y2),(0,255,255),5)
+                arg = math.degrees(math.atan2((y2-y1), (x2-x1)))
+                HORIZONTAL = 0
+                DIFF = 20 # 許容誤差 -> -20 - +20 を本来の水平線と考える
+                if arg > HORIZONTAL - DIFF and arg < HORIZONTAL + DIFF : 
+                    sum_arg += arg;
+                    count += 1
+    cv2.imshow('edge',edges)
+
+    if count == 0:
+        return HORIZONTAL
+    else:
+        return (sum_arg / count) - HORIZONTAL;
+
+
+# Closer-in minimum depth, disparity range is doubled (from 95 to 190):
+extended_disparity = False
+# Better accuracy for longer distance, fractional disparity 32-levels:
+subpixel = False
+# Better handling for occlusions:
+lr_check = False
+
+# Create pipeline
+pipeline = dai.Pipeline()
+
+# Define sources and outputs
+monoLeft = pipeline.createMonoCamera()
+monoRight = pipeline.createMonoCamera()
+depth = pipeline.createStereoDepth()
+xout = pipeline.createXLinkOut()
+
+xout.setStreamName("disparity")
+
+# Properties
+monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
+monoLeft.setBoardSocket(dai.CameraBoardSocket.LEFT)
+monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
+monoRight.setBoardSocket(dai.CameraBoardSocket.RIGHT)
+
+# Create a node that will produce the depth map (using disparity output as it's easier to visualize depth this way)
+depth.initialConfig.setConfidenceThreshold(200)
+# Options: MEDIAN_OFF, KERNEL_3x3, KERNEL_5x5, KERNEL_7x7 (default)
+depth.initialConfig.setMedianFilter(dai.MedianFilter.KERNEL_7x7)
+depth.setLeftRightCheck(lr_check)
+depth.setExtendedDisparity(extended_disparity)
+depth.setSubpixel(subpixel)
+
+# Linking
+monoLeft.out.link(depth.left)
+monoRight.out.link(depth.right)
+depth.disparity.link(xout.input)
+
+# Define source and output
+camRgb = pipeline.createColorCamera()
+
+xoutRgb = pipeline.createXLinkOut()
+
+xoutRgb.setStreamName("rgb")
+
+# Properties
+camRgb.setPreviewSize(640, 400)
+camRgb.setInterleaved(False)
+camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.RGB)
+
+# Linking
+camRgb.preview.link(xoutRgb.input)
+
+# Connect to device and start pipeline
+with dai.Device(pipeline) as device:
+
+    # Output queue will be used to get the disparity frames from the outputs defined above
+    q = device.getOutputQueue(name="disparity", maxSize=4, blocking=False)
+    # Output queue will be used to get the rgb frames from the output defined above
+    qRgb = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
+
+    #動画保存
+    fps = 20.0
+    w = 640
+    h = 400
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter('output.mp4', fourcc, fps, (w, h))
+
+    while True:
+        inRgb = qRgb.get()  # blocking call, will wait until a new data has arrived
+
+        #カラー画像(frame_o)
+        # Retrieve 'bgr' (opencv format) frame
+        frame_o=inRgb.getCvFrame()
+        cv2.imshow("rgb", frame_o)
+        
+        #深度画像(frame)
+        inDepth = q.get()  # blocking call, will wait until a new data has arrived
+        frame = inDepth.getFrame()
+        # Normalization for better visualization
+        frame = (frame * (255 / depth.getMaxDisparity())).astype(np.uint8)
+
+        #深度画像をカラーカメラと縮尺をそろえる(frame)
+        x=int(640*1.25)
+        y=int(400*1.35)
+        frame = cv2.resize(frame , (x,y))
+        x1=int((x-640)/2)
+        y1=int((y-400)/2)
+        frame = frame[y1:y1+400, x1:x1+640]
+
+        # 画像の大きさを取得
+        #print(frame.shape[:3])
+        #cv2.imshow("disparity", frame)
+
+        # Available color maps: https://docs.opencv.org/3.4/d3/d50/group__imgproc__colormap.html
+        frame = cv2.applyColorMap(frame, cv2.COLORMAP_JET)
+        cv2.imshow("disparity_color", frame)
+        out.write(frame)
+
+
+        # 距離抽出（HSVでの色抽出）
+        #https://colorcodesearch.com/colorpicker/
+        hsvLower = np.array([112, 0, 0])    # 抽出する色の下限(HSV)
+        hsvUpper = np.array([116, 255, 255])    # 抽出する色の上限(HSV)
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV) # 画像をHSVに変換
+        hsv_mask = cv2.inRange(hsv, hsvLower, hsvUpper)    # HSVからマスクを作成
+
+
+        cv2.imshow("mask", hsv_mask)
+        result = cv2.bitwise_and(frame_o, frame_o, mask=hsv_mask) # 元画像とマスクを合成
+        result=img_rotate(result,get_degree(frame_o))
+
+        #２値化
+        ret, result = cv2.threshold(result, 50, 255, cv2.THRESH_BINARY)
+
+        #ボール検出
+        
+        cimg = cv2.cvtColor(result,cv2.COLOR_BGR2GRAY)
+
+        circles = cv2.HoughCircles(cimg,cv2.HOUGH_GRADIENT,dp=1.6,minDist=10,
+                                    param1=50,param2=20,minRadius=5,maxRadius=7)
+        if circles is not None:
+            circles = np.uint16(np.around(circles))
+            print(circles)
+            for i in circles[0,:]:
+                # draw the outer circle
+                cv2.circle(cimg,(i[0],i[1]),i[2],(0,255,0),2)
+                # draw the center of the circle
+                cv2.circle(cimg,(i[0],i[1]),2,(0,0,255),3)
+        cv2.imshow('detected circles',cimg)
+
+        if cv2.waitKey(1) == ord('q'):
+                break
+
+
+    out.release()
+    cv2.destroyAllWindows()

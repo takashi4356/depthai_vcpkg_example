@@ -1,0 +1,18 @@
+//変更全てステージ
+git add .
+
+//コミット
+git commit -m "comment"
+
+//プッシュ
+git push origin DoubleCamera
+
+---------------------------------- -
+git push <リモート名> <ブランチ名>
+
+例えば、originという名前のリモートリポジトリのmainブランチにプッシュする場合:
+
+git push origin main
+
+通常、originはデフォルトのリモートリポジトリ名で、git remote addコマンドで設定されます12。
+

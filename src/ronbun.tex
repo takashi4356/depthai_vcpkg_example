@@ -1,0 +1,192 @@
+%VSCODE日本語対応の参考
+%https://qiita.com/arailly/items/5bfdfaf786f6ac0c9808
+
+\documentclass[submit]{ipsj}
+%\documentclass{C:\texlive\texmf-local\tex\platex\base\jreport.cls}
+%\documentclass{ipsj}
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{latexsym}
+\usepackage{ascmac}
+\usepackage{here}
+\def\Underline{\setbox0\hbox\bgroup\let\\\endUnderline}
+\def\endUnderline{\vphantom{y}\egroup\smash{\underline{\box0}}\\}
+\def\|{\verb|}
+
+\setcounter{巻数}{59}
+\setcounter{号数}{1}
+\setcounter{page}{1}
+
+\受付{2023}{3}{4}
+\採録{2023}{8}{1}
+
+\begin{document}
+
+\title{コンピュータビジョン技術のスポーツテック分野での実践}
+
+\etitle{Practicing computer vision technology in sports tech \\}
+
+\affiliate{IPSJ}{情報処理学会\\
+IPSJ, Chiyoda, Tokyo 101--0062, Japan}
+
+
+\paffiliate{JU}{ニッセイ情報テクノロジー株式会社\\
+NissayIT}
+
+\author{吉田　孝}{Takashi Yoshida}{IPSJ}[takashi\_yoshida@nissay-it.co.jp]
+
+\begin{abstract}
+GPU（グラフィックスプロセッシングユニット）や画像センサーの進歩に伴い、自動運転を始め、医療やエンターテイメントなど様々な分野でコンピュータビジョン技術の活用が進んでいる。
+自らもコンピュータビジョン技術をスポーツテックの分野で実践したので紹介する。
+\end{abstract}
+
+\maketitle
+
+\section{コンピュータビジョンとは}
+コンピュータビジョン（以降CV）は人間の視覚機能をコンピュータによって実現するもので、映像で捉えた現実世界の情報をコンピュータで扱える形に変換し、様々な処理を行うことである。
+
+CVには文字認識、物体認識、空間認識などの様々な技術要素があり、現在はこれら技術がオープンソース、廉価な画像センサーなど、汎用的に利用できる形で提供されており、広く活用が進んでいる。
+
+\section{スポーツテック分野での実践}
+CV技術を利用した、手持ち式の自動ボールストライク判定機（Autometed Ball-Strike System.以降ABS）を製作した
+
+野球/ソフトボール競技において投手が投じるボールは球審がボールストライクの判定を行う。この判定の機会は１試合で数百回におよび、他の競技に比べても判定の役割は非常に大きいものである。一方で判定における誤審率はプロの審判でも１０％～２０％に及ぶという研究結果もあるほどボールストライクの判定は難しいものである。アマチュアレベル、特に競技の裾野を担う学童野球や草野球などでは専任の審判を確保することは難しく、保護者や指導者、プレーヤー自身が審判を務める状況が状態的にあり、誤審に伴うトラブルやストレスからは免れない。
+
+米国のプロ野球界などでは球場の複数個所に設備として配置されたカメラやレーダなどによりボールストライクを自動で判定し、結果を球審に無線送信する仕組み、いわゆるロボット審判が利用され始めている(図\ref{fig:abs})。 しかし、このような仕組みはアマチュア競技レベルで利用できるものではなく、これまで解決策は提示されていなかった。
+
+当課題解決のため今回製作したABSは、球審が手に持つことのできる小型の装置であって、競技場所を選ばすに利用できる手持ち式ABSであることを特徴としている。
+\begin{figure}[H]
+ \centering
+ \includegraphics[width=75mm,keepaspectratio]
+      {abs.jpg}
+ \caption{Typical Hawk-Eye Camera Installations\cite{mlbabs}}
+ \label{fig:abs}
+\end{figure}
+
+\section{システム構築}
+\subsection{実装方式}
+\begin{quote}
+ \begin{itemize}
+  \item 小型汎用シングルボードコンピュータ
+  \item 画像処理に広く利用されているオープンソースライブラリのOpenCVを利用
+  \item 高速化のため、すべての処理をC++言語で記述
+  \item エッジAIカメラの利用（図\ref{fig:外観}、\ref{fig:内部モジュール}）
+
+  画像処理は主にシングルボードコンピュータで行うが、一部の画像処理については画像センサーにエッジコンピューティング技術を搭載したエッジAIカメラで行わせることにより、非力なシングルボードコンピュータの性能を補完することとした。
+ \end{itemize}
+\end{quote}
+
+\begin{figure}[H]
+ \centering
+ \includegraphics[width=75mm,keepaspectratio]
+      {外観.jpg}
+ \caption{外観}
+ \label{fig:外観}
+\end{figure}
+\begin{figure}[H]
+ \centering
+ \includegraphics[width=75mm,keepaspectratio]
+      {カメラボード.png}
+ \caption{エッジAIカメラと小型シングルボードコンピュータ}
+ \label{fig:内部モジュール}
+\end{figure}
+
+\begin{itembox}[l]{エッジコンピューティング}
+エッジコンピューティングは、カメラやセンサーデバイスに直接接続されたコンピューターでデータ処理を行うコンピューターシステムである。処理を分散できることと、処理を行う際にネットワークを介してを中央コンピュータやクラウドにデータを送信する必要がないため、高速に処理を行うことが可能となる。エッジAIカメラでは学習済データを利用した推論処理や幾つかの画像処理などが実行できる
+\end{itembox}
+
+
+\subsection{処理概要}
+画像情報から形状や色などをもとにボール、ホームベースを認識、それぞれの現実世界における3次元座標を算出した上で、ボール、ホームベースの相対位置などからボールストライクを判定している（図\ref{fig:処理概要}、図\ref{fig:認識されたボールとホームベース}）
+
+なお判定結果は、投球の都度、リアルタイムで画面表示されるとともに音声でもコールされる
+
+\begin{figure}[H]
+ \centering
+ \includegraphics[width=75mm,keepaspectratio]
+      {base_find-全体概要.drawio.png}
+ \caption{処理概要}
+ \label{fig:処理概要}
+\end{figure}
+\begin{figure}[H]
+ \centering
+ \includegraphics[width=75mm,keepaspectratio]
+      {CVにより認識されたボールとホームベース.png}
+ \caption{CV技術によりコンピュータ上で認識されたボールとホームベース}
+ \label{fig:認識されたボールとホームベース}
+\end{figure}
+
+\section{評価試験}
+ピッチングマシンが投じた時速80km程度のボールを手持ち式ABSで判定させ、判定精度と処理性能を評価した。また検証のため、ホームベースの真上と真横にビデオカメラを設置し、ボールの位置を記録した（図\ref{fig:試験の様子}）。尚、今回、ABSは手持ちではなく審判目線位置に固定設置して試験しているが、手持ちに近い試験結果を得るため、設置位置の事前キャリブレーションなどは特に行っていないことを述べておく。
+
+\begin{figure}[H]
+ \centering
+ \includegraphics[width=75mm,keepaspectratio]
+      {実験装置.jpg}
+ \includegraphics[width=75mm,keepaspectratio]
+      {実験の様子２.png}
+ \caption{試験の様子}
+ \label{fig:試験の様子}
+\end{figure}
+
+\subsection{判定精度}
+手持ち式ABSの判定結果をビデオ画像による記録結果に照らし合わせることで、判定精度を評価する。
+図\ref{fig:判定結果}は捕手から見た投球コース毎のストライク判定率を図示しており、赤枠内がストライクと判定されるべきコースである。
+また参考として先行研究として公表されているプロ野球(NPB)での同様の調査結果を示しておく（図\ref{fig:pro判定率}）。 
+
+サンプリング数、球速の違い、変化球の有無など比較できるものではないものの、今回製作した手持ち式ABSは一定条件下においては概ね良好な判定精度を得ている。
+
+\begin{figure}[H]
+ \centering
+ \includegraphics[width=75mm,keepaspectratio]
+      {判定結果.png}
+ 
+ ←インコース　　　　　　　　アウトコース→
+ \caption{判定率}
+ \label{fig:判定結果}
+\end{figure}
+\begin{figure}[H]
+ \includegraphics[width=75mm,keepaspectratio]
+      {pro判定率.jpg}
+ \caption{NPBにおける判定率\cite{pro判定率}}
+ \label{fig:pro判定率}
+\end{figure}
+
+\subsection{処理性能}
+シングルボードコンピュータのCPUはパソコンなどと比べると非力ではあるが、プログラミングの工夫により、実測値としてカメラ性能限界である1秒あたり処理画像数は117に達し、1画面あたり10ミリ秒以下の処理性能を得ることができている。
+時速150kmのボールがストライクゾーンを通過する時間は約10ミリ秒であるため、計算上はプロ野球レベルの投球を判定することができるが、利用しているカメラの光学的な能力もあり、実用的の限界はそれを下回ると思われる。
+
+\section{CVとAI（人口知能）}
+AIに視覚機能を与える役割であるCVはAIと親和性があり、協調して進歩している。今回、構築した手持ち式ABSでも当初はエッジAIカメラによる推論処理を利用してみたが、以下の問題がみられた。
+\begin{quote}
+ \begin{itemize}
+  \item 認識精度の問題
+  
+　背景の物体や光点をボールと誤認識することが頻発した。
+  これはボールが特徴量の少ない単純な形状/色情報しか持たないために、AIにとっては他の物体や光点との区別が難しい事が理由として考えられる。
+  またAIでは実空間上のホームベースの正確な位置を情報として出力することが困難であった
+ \item 認識速度の問題
+
+  エッジAIカメラによる推論機能を利用しても、１秒あたり処理画像数が20～30が性能の限度であった
+ \end{itemize}
+\end{quote}
+
+
+以上のような問題から、今回、AI技術の利用はボールの軌道予測での利用にとどめおき、主に古典的なCV技術によりシステムを構築した。
+このように利用用途によっては古典的なCV技術は処理速度や精度の面から依然として重要な技術であるといえる。
+
+一方で今回は実装していないが、人間が球審を務めることの価値、例えば大差で負けているチームの投球に対して少し甘めの判定を下すなど、このような人間の情緒を程よくシステムに実装するのはAIの利用が向いていると思われる。AIの活用方法いかんによって更に価値を増すことができるものと考えている。
+
+
+\section{最後に}
+CV技術を野球/ソフトボール競技における課題解決に実践し、実社会におけるCV技術の有用性を示した。
+また、実践を通して古典的なCV技術も依然として価値があり、新たな技術と組み合わせて適材適所で利用すべきということが分かった。
+CV技術はAIや、実世界に対して働きかける役割を担うロボット技術などとともに進歩を続け、今後も様々な社会課題の解決に寄与するものと思われる。
+
+\begin{thebibliography}{99}
+\bibitem{mlbabs}Ben Jedlovec MLB Technology Blog.Jul 21, 2020Image 1. Typical Hawk-Eye Camera Installations
+https://technology.mlblogs.com/introducing-statcast-2020-hawk-eye-and-google-cloud-a5f5c20321b8
+\bibitem{pro判定率}市川 博久（いちかわ・ひろひさ）／弁護士 @89yodan.球審の判定バイアスの研究Part1　～カウントと内外角の広さの関係編～、図2-1 ゾーン別ストライク判定率（捕手視点））
+https://1point02.jp/op/gnav/column/bs/column.aspx?cid=53565
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Name=STRIKE
+Comment=Start MyApp GUI
+Exec=sh /home/pi/depthaiC++/depthai-core-example-main/src/myapp.sh
+Icon=/home/pi/depthaiC++/depthai-core-example-main/src/strike_logo.jpg
+Terminal=true
+Type=Application
+X-KeepTerminal=true

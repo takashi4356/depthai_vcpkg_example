@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Name=VSCODE
+Comment=Start MyApp GUI
+Exec=code --js-flags="--nodecommit_pooled_pages"
+Icon=/home/pi/depthaiC++/depthai-core-example-main/src/vscode_icon.png
+Terminal=true
+Type=Application
+X-KeepTerminal=true
+Name[ja_JP]=VSCODE

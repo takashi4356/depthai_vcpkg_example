@@ -1,0 +1,11 @@
+# 仮想環境を作成
+python3 -m venv ~/depthai-venv
+
+# 仮想環境をアクティブにする
+source ~/depthai-venv/bin/activate
+
+# pipをアップグレード
+pip install --upgrade pip
+
+# depthai-sdkをインストール
+pip install depthai-sdk

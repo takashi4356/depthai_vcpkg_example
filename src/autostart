@@ -1,0 +1,7 @@
+@lxpanel --profile LXDE-pi
+@pcmanfm --desktop --profile LXDE-pi
+@xscreensaver -no-splash
+;@lxterminal -e sh /home/pi/kyouyuu/test.sh
+;@lxterminal -e python3 /home/pi/depthaiC++/depthai-core-example-main/src/auto_st.py
+;@lxterminal -e python3 /home/pi/depthaiC++/depthai-core-example-main/src/play_sound.py
+@lxterminal -e sh /home/pi/depthaiC++/depthai-core-example-main/build/myapp.sh

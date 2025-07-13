@@ -1,0 +1,41 @@
+                key = '6'; // キャリブレーション
+                key == ' ' //強制判定モード
+        if (key == 'q' || key == 'Q')//終了
+        if (key == 'c' || key == 'C')//キャリブレーション
+            if (key == 'i') //exp_time_mono -= EXP_STEP;
+            if (key == 'o') //exp_time_mono += EXP_STEP;
+            if (key == 'k') //sens_iso_mono -= ISO_STEP;
+            if (key == 'l') //sens_iso_mono += ISO_STEP;
+            if (key == 'I') //exp_time_Rgb -= EXP_STEP;
+            if (key == 'O') //exp_time_Rgb += EXP_STEP;
+            if (key == 'K') //sens_iso_Rgb -= ISO_STEP;
+            if (key == 'L') //sens_iso_Rgb += ISO_STEP;
+            if (key == 'y') //dep_l_en -= DEP_STEP;
+            if (key == 'u') //dep_l_en += DEP_STEP;
+            if (key == 'h') //dep_l_kin -= DEP_STEP;
+            if (key == 'j') //dep_l_kin += DEP_STEP;
+            if (key == 'v') //best_v_filter = best_v_filter - 2;
+            if (key == 'V') //best_v_filter = best_v_filter + 2;
+        if (key == 'w' || key == 'W') // インフォメーション表示
+        if (key == 'p') //rnd_keisuu = rnd_keisuu + 0.1;
+        if (key == 'P') //rnd_keisuu = rnd_keisuu - 0.1;
+        if (key == '@') //rnd_keisuu2 = rnd_keisuu2 + 200;
+        if (key == '`') //rnd_keisuu2 = rnd_keisuu2 - 200;
+        if (key == 'x' || key == 'z') // 録画ON/OFF
+            if (key == 'x')
+                // rokuga_onoff(rec_bin, true);
+                // rokuga_onoff(rec_depth, true);
+            if (key == 'z') //録画終了
+            if (key == 's') //rokuga_onoff(rec_BGR, true);
+            if (key == 'a') // rokuga_onoff(rec_BGR, false);
+            if (key == '4') //focus_Rgb--;
+            if (key == '6') //focus_Rgb++;
+            if (key == '1') //focus_mono--;
+            if (key == '3') //focus_mono++;
+            if (key == '8') //basez.nee++;
+            if (key == '2') //basez.nee--;
+        if (key == 'n' || key == 'N') // ("snap shot off");
+        if (key == 'b') //frame_mono_f_p = true;printf("bin ON\n");
+        if (key == 'B') //confidenceMap_f = true;rectifiedLeft_f = true;printf("confidenceMap/rectifiedLeft ON\n");
+        if (key == '5') // kyuusoku_keisoku ON/OFF
+---------------------------------------------------------------
