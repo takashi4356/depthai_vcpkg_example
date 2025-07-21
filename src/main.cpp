@@ -269,22 +269,22 @@ int base_katamuki_hosei;               // ベース傾き補正値
 
 #if (double_camera == true)
 // 判定メイン関数（ダブルカメラ用）
-int Judgment_main(std::shared_ptr<dai::Device> &device, std::shared_ptr<dai::Device> &device_B);
+int Judgment_main();
 #else
 // 判定メイン関数（シングルカメラ用）
-int Judgment_main(dai::Device &device);
+int Judgment_main();
 #endif
 
 #if (double_camera == true)
 // モノクロ画像取得スレッド（ファースト・セカンドカメラ）
-void mono_read_f(std::shared_ptr<dai::Device> &device);
-void mono_read_s(std::shared_ptr<dai::Device> &device);
+void mono_read_f();
+void mono_read_s();
 // タイムスタンプ（ファースト・セカンドカメラ）
 std::chrono::time_point<std::chrono::steady_clock> ts_f;
 std::chrono::time_point<std::chrono::steady_clock> ts_s;
 #else
 // モノクロ画像取得スレッド（シングルカメラ）
-void mono_read_f(dai::Device &device);
+void mono_read_f();
 // タイムスタンプ（シングルカメラ）
 std::chrono::time_point<std::chrono::steady_clock> ts_f;
 #endif
@@ -2745,6 +2745,8 @@ int main(int argc, char *argv[])
     controlQueue_script = script->inputs["control_script"].createInputQueue(); // V3
     controlQueue_mono_right = monoRight->inputControl.createInputQueue(); // V3
     controlQueue_mono_left = monoLeft->inputControl.createInputQueue(); // V3
+    controlQueue_mono_B_right = monoRight_B->inputControl.createInputQueue(); // V3
+    controlQueue_mono_B_left = monoLeft_B->inputControl.createInputQueue(); // V3
     imuQueue = imu->out.createOutputQueue(1, false); // NEW (v3): IMUノードのoutポートから直接キューを作成
 
     //mono_read_s
@@ -2967,12 +2969,12 @@ int main(int argc, char *argv[])
 #endif
     {
 #if (double_camera == true)
-        thread th_a(Judgment_main, std::ref(device), std::ref(device_B));
-        thread th_d(mono_read_f, std::ref(device));
-        thread th_e(mono_read_s, std::ref(device_B));
+        thread th_a(Judgment_main);
+        thread th_d(mono_read_f);
+        thread th_e(mono_read_s);
 #else
-        thread th_a(Judgment_main, std::ref(device));
-        thread th_d(mono_read_f, std::ref(device));
+        thread th_a(Judgment_main);
+        thread th_d(mono_read_f);
 #endif
         thread th_c(img_key, std::ref(device));
 #if (double_camera == true)
@@ -3009,7 +3011,7 @@ int main(int argc, char *argv[])
  * @detail 詳細な説明
  *  判定に必要最小の処理のみにしてFPSを稼ぐ
  */
-int Judgment_main(std::shared_ptr<dai::Device> &device, std::shared_ptr<dai::Device> &device_B)
+int Judgment_main()
 {
     LOG_NONE.printf("start Judgment_main");
     uint64_t time_cnt = get_sec();
@@ -3024,9 +3026,6 @@ int Judgment_main(std::shared_ptr<dai::Device> &device, std::shared_ptr<dai::Dev
     // basez.dep_l_en = c_dep_l_en;
     // basez.dep_l_kin = c_dep_l_kin;
     float rnd_pitch_bias = conf_json["rnd_pitch_bias"];
-    // カメラ設定変更
-    // qconfidenceMap = device.getOutputQueue("confidenceMap", 1, false);
-    // qrectifiedLeft = device.getOutputQueue("rectifiedLeft", 1, false);
     mono_read_lock_f = true;
     mono_read_lock_s = true;
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -4332,7 +4331,7 @@ int Judgment_main(std::shared_ptr<dai::Device> &device, std::shared_ptr<dai::Dev
  * r_image_orgにカラー画像を取得します。
  * @sa
  */
-void mono_read_f(std::shared_ptr<dai::Device> &device3)
+void mono_read_f()
 {
     LOG_NONE.printf("start mono_read_f()");
     // 時間同期の設定
@@ -4340,10 +4339,12 @@ void mono_read_f(std::shared_ptr<dai::Device> &device3)
     int numSamples = 10;                        // 同期に使うサンプル数
     bool random = false;                        // ランダムな揺らぎはなし
     // device3->setTimesync(syncPeriod, numSamples, random);
-    /* auto initialFrame = q_f->get<dai::ImgFrame>();
+    printf("\nbbb_f\n");
+    auto initialFrame = q_f->get<dai::ImgFrame>();
+    printf("\nccc_f\n");
     auto initialTs_f = initialFrame->getTimestamp();
     initialTs_ms_f = std::chrono::duration_cast<std::chrono::milliseconds>(initialTs_f.time_since_epoch()).count();
-    */
+    
     // リサイズ後の画像を格納する変数
     cv::Mat resizedImage;
 
@@ -4456,7 +4457,7 @@ void mono_read_f(std::shared_ptr<dai::Device> &device3)
  * r_image_orgにカラー画像を取得します。
  * @sa
  */
-void mono_read_s(std::shared_ptr<dai::Device> &device3)
+void mono_read_s()
 {
     LOG_NONE.printf("start mono_read_s()");
 
@@ -4464,15 +4465,15 @@ void mono_read_s(std::shared_ptr<dai::Device> &device3)
     std::chrono::milliseconds syncPeriod(1000); // 100msごとに同期
     int numSamples = 10;                        // 同期に使うサンプル数
     bool random = false;                        // ランダムな揺らぎはなし
-    printf("\naaa\n");
+    printf("\naaa_s\n");
     // device3->setTimesync(syncPeriod, numSamples, random);
-    printf("\nbbb\n");
+    printf("\nbbb_s\n");
     auto initialFrame = q_s->get<dai::ImgFrame>();
-    printf("\nccc\n");
+    printf("\nccc_s\n");
     auto initialTs_s = initialFrame->getTimestamp();
-    printf("\nddd\n");
+    printf("\nddd_s\n");
     initialTs_ms_s = std::chrono::duration_cast<std::chrono::milliseconds>(initialTs_s.time_since_epoch()).count();
-    printf("\neee\n");
+    printf("\neee_s\n");
 
     // リサイズ後の画像を格納する変数
     cv::Mat resizedImage;

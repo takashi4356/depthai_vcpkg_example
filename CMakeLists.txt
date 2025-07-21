@@ -17,7 +17,7 @@ project(${TARGET_NAME})
 
 # Add source files
 add_executable("${TARGET_NAME}"
-    src/main3.cpp
+    src/main.cpp
 )
 target_include_directories(myapp PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 

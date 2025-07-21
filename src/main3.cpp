@@ -76,12 +76,6 @@ int main() {
 
     stereo->disparity.link(manip_hanten->inputImage);
 
-    // ***************************************************
-    // *************** プロパティを設定 ***************
-    // ***************************************************
-    stereo->setRectification(true);
-    stereo->setExtendedDisparity(true);
-    stereo->setLeftRightCheck(true);
 
     /**********************************************************************************/
     // キューの設定
