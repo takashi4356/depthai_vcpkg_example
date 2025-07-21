@@ -17,7 +17,7 @@ project(${TARGET_NAME})
 
 # Add source files
 add_executable("${TARGET_NAME}"
-    src/main.cpp
+    src/main3.cpp
 )
 target_include_directories(myapp PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
@@ -29,8 +29,9 @@ endif()
 #ライブラリディレクトリ指定 
 set(INCLUDE_DIR
 #  ${OPENCV_INCLUDE_DIRS}
-  /home/pi/home/pi/depthaiC++/depthai-core-example-main/plog/include
-  /home/pi/home/pi/depthaiC++/depthai-core-example-main/json/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
+  /.../plog/include
+  /.../json/include
   /usr/include
   /home/pi
   /usr/include/eigen3

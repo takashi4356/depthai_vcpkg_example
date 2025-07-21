@@ -1,8 +1,9 @@
-build
+build*
 .env
 .cache
 src/高さ算出.xlsx
-/build
+/build*
 /plog
 /3dparty
-
+/json
+src/plog

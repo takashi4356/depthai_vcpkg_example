@@ -324,22 +324,30 @@ static std::atomic<bool> lr_check{false};
 
 // DEPTHAI ノード 型宣言
 //! DEPTHAI NODE 左モノカメラ
-std::shared_ptr<dai::node::Camera> monoLeft;
+std::shared_ptr<dai::node::MonoCamera> monoLeft;
 //! DEPTHAI NODE 右モノカメラ
-std::shared_ptr<dai::node::Camera> monoRight;
+std::shared_ptr<dai::node::MonoCamera> monoRight;
 //! DEPTHAI NODE 深度
 std::shared_ptr<dai::node::StereoDepth> depth;
-
-/*
+/* V2->V3
+//! DEPTHAI NODE xout(深度出力)
+//std::shared_ptr<dai::node::XLinkOut> xout;
+//! DEPTHAI NODE xout_mono(モノ出力)
+// std::shared_ptr<dai::node::XLinkOut> xout_mono;
+//! DEPTHAI NODE xout(信頼値)
+// std::shared_ptr<dai::node::XLinkOut> xoutconfidenceMap;
+//! DEPTHAI NODE xout( )
+// std::shared_ptr<dai::node::XLinkOut> xoutrectifiedLeft;
+//! DEPTHAI NODE xout(カラー出力)
+std::shared_ptr<dai::node::XLinkOut> xoutRgb;
 //! DEPTHAI NODE xlinkin(monoカメラ設定)
 std::shared_ptr<dai::node::XLinkIn> controlIn_mono;
 std::shared_ptr<dai::node::XLinkIn> controlIn_Rgb;
 std::shared_ptr<dai::node::XLinkIn> controlIn_script;
 std::shared_ptr<dai::node::XLinkIn> configIn;
 */
-
 //! DEPTHAI NODE カラーカメラ
-std::shared_ptr<dai::node::Camera> camRgb;
+std::shared_ptr<dai::node::ColorCamera> camRgb;
 //! DEPTHAI NODE manip
 std::shared_ptr<dai::node::ImageManip> manip_l, manip_r;
 //! DEPTHAI NODE script
@@ -358,21 +366,13 @@ std::shared_ptr<dai::node::IMU> imu;// V3
 // IMU 出力キュー
 std::shared_ptr<dai::MessageQueue> imuQueue;//V3
 
-//キュー
-//mono_read_f
-std::shared_ptr<dai::MessageQueue> q_f; // NEW (v3)
-std::shared_ptr<dai::MessageQueue> qRgb; // NEW (v3 に合わせた宣言、または v2 API の戻り値型)
-std::shared_ptr<dai::Buffer> buffer2;; // V2->V3
-//mono_read_s
-std::shared_ptr<dai::MessageQueue> q_s; // NEW (v3)
-
 // std::shared_ptr<dai::IMUData> imuData;
 // std::shared_ptr<dai::DataOutputQueue> imuQueue;
 
 //! DEPTHAI NODE 左モノカメラ
-std::shared_ptr<dai::node::Camera> monoLeft_B;
+std::shared_ptr<dai::node::MonoCamera> monoLeft_B;
 //! DEPTHAI NODE 右モノカメラ
-std::shared_ptr<dai::node::Camera> monoRight_B;
+std::shared_ptr<dai::node::MonoCamera> monoRight_B;
 //! DEPTHAI NODE 深度
 std::shared_ptr<dai::node::StereoDepth> depth_B;
 /* V2->V3
@@ -384,8 +384,9 @@ std::shared_ptr<dai::node::XLinkOut> xout_B;
 // std::shared_ptr<dai::node::XLinkOut> xoutconfidenceMap;
 //! DEPTHAI NODE xout( )
 // std::shared_ptr<dai::node::XLinkOut> xoutrectifiedLeft;
-*/
-/*! DEPTHAI NODE xlinkin(monoカメラ設定)
+//! DEPTHAI NODE xout(カラー出力)
+std::shared_ptr<dai::node::XLinkOut> xoutRgb_B;
+//! DEPTHAI NODE xlinkin(monoカメラ設定)
 std::shared_ptr<dai::node::XLinkIn> controlIn_mono_B;
 std::shared_ptr<dai::node::XLinkIn> controlIn_Rgb_B;
 std::shared_ptr<dai::node::XLinkIn> controlIn_script_B;
@@ -2348,86 +2349,86 @@ int main(int argc, char *argv[])
     }
 #endif
 
-    // ***************************************************
-    // **************** デバイスを選択
-    // ***************************************************
+    // デバイスを選択
     dai::DeviceInfo deviceInfo1 =  availableDevices[0];
-    std::shared_ptr<dai::Device> device = std::make_shared<dai::Device>(deviceInfo1);
-
-#if (double_camera == true)
-    dai::DeviceInfo deviceInfo2 = availableDevices[1];
-    std::shared_ptr<dai::Device> device_B = std::make_shared<dai::Device>(deviceInfo2);
-#endif
-
-    // ***************************************************
-    // *************** パイプラインを構築 ***************
-    // ***************************************************
+    // デバイスを初期化
+    std::shared_ptr<dai::Device> device;
+    device = std::make_shared<dai::Device>(deviceInfo1);
+    // パイプラインを構築
     dai::Pipeline pipeline(device);
-    dai::PipelineImpl(pipeline, false);
+    dai::PipelineImpl(pipeline , false);
 #if (double_camera == true)
+    // デバイスを選択
+    dai::DeviceInfo deviceInfo2 = availableDevices[1];
+    // デバイスを初期化
+    std::shared_ptr<dai::Device> device_B;
+    device = std::make_shared<dai::Device>(deviceInfo2);
+    // パイプラインを構築
     dai::Pipeline pipeline_B(device_B);
-    dai::PipelineImpl(pipeline_B, false);
+    dai::PipelineImpl(pipeline_B , false);
 #endif
 
-    // ***************************************************
-    // *************** ノードを構築 ***************
-    // ***************************************************
-
-    // monoLeftとmonoRightの定義
-    if (p720p_on)
-    {
-    monoLeft = pipeline.create<dai::node::Camera>()->build(dai::CameraBoardSocket::CAM_B, std::make_pair(1280, 720), 143);
-    monoRight = pipeline.create<dai::node::Camera>()->build(dai::CameraBoardSocket::CAM_C, std::make_pair(1280, 720), 143);
-    }
-    else
-    {
-    monoLeft = pipeline.create<dai::node::Camera>()->build(dai::CameraBoardSocket::CAM_B, std::make_pair(640, 400), 143);
-    monoRight = pipeline.create<dai::node::Camera>()->build(dai::CameraBoardSocket::CAM_C, std::make_pair(640, 400), 143);
-    }
-
-    // stereoDepthの定義
+    //!  Create pipeline
+    // dai::Pipeline pipeline;
+    // Define sources and outputs
+    printf("aaa\n");
+    monoLeft = pipeline.create<dai::node::MonoCamera>();
+    printf("bbb\n");
+    monoRight = pipeline.create<dai::node::MonoCamera>();
+    camRgb = pipeline.create<dai::node::ColorCamera>();
     depth = pipeline.create<dai::node::StereoDepth>();
-
-    // ColorCameraの定義
-    camRgb = pipeline.create<dai::node::Camera>()->build((dai::CameraBoardSocket::CAM_A));
-
-    // グローバルで宣言したimu変数を初期化
-    imu = pipeline.create<dai::node::IMU>(); // NEW (v3): ノードタイプを明示
-
-    // manipとscriptの定義
+    printf("ddd\n");
+    /* V2->V3
+    xout = pipeline.create<dai::node::XLinkOut>();
+    // xout_mono = pipeline.create<dai::node::XLinkOut>();
+    xoutRgb = pipeline.create<dai::node::XLinkOut>();
+    // xoutconfidenceMap = pipeline.create<dai::node::XLinkOut>();
+    // xoutrectifiedLeft = pipeline.create<dai::node::XLinkOut>();
+    controlIn_mono = pipeline.create<dai::node::XLinkIn>();
+    controlIn_Rgb = pipeline.create<dai::node::XLinkIn>();
+    controlIn_script = pipeline.create<dai::node::XLinkIn>();
+    configIn = pipeline.create<dai::node::XLinkIn>();
+    pipeline.setXLinkChunkSize(0); // チャンクサイズ設定
+    */
     manip_l = pipeline.create<dai::node::ImageManip>();
     manip_r = pipeline.create<dai::node::ImageManip>();
     script = pipeline.create<dai::node::Script>();
+    // auto logger = pipeline.create<dai::node::SystemLogger>();
+    // logger->setRate(1.0f);
 
 #if (double_camera == true)
     // camera_B Define sources and outputs
-
-    // monoLeftとmonoRightの定義
-    if (p720p_2_on)
-    {
-    monoLeft_B = pipeline_B.create<dai::node::Camera>()->build(dai::CameraBoardSocket::CAM_B, std::make_pair(1280, 720), 143);
-    monoRight_B = pipeline_B.create<dai::node::Camera>()->build(dai::CameraBoardSocket::CAM_C, std::make_pair(1280, 720), 143);
-    }
-    else
-    {
-    monoLeft_B = pipeline_B.create<dai::node::Camera>()->build(dai::CameraBoardSocket::CAM_B, std::make_pair(640, 400), 143);
-    monoRight_B = pipeline_B.create<dai::node::Camera>()->build(dai::CameraBoardSocket::CAM_C, std::make_pair(640, 400), 143);
-    }
-
-    // stereoDepthの定義
+    monoLeft_B = pipeline_B.create<dai::node::MonoCamera>();
+    monoRight_B = pipeline_B.create<dai::node::MonoCamera>();
+    // camRgb_B = pipeline_B.create<dai::node::ColorCamera>();
     depth_B = pipeline_B.create<dai::node::StereoDepth>();
-
-    // manipの定義
+    /* V2->V3
+    xout_B = pipeline_B.create<dai::node::XLinkOut>();
+    // xoutRgb_B = pipeline_B.create<dai::node::XLinkOut>();
+    controlIn_mono_B = pipeline_B.create<dai::node::XLinkIn>();
+    // controlIn_Rgb_B = pipeline_B.create<dai::node::XLinkIn>();
+    // controlIn_script_B = pipeline_B.create<dai::node::XLinkIn>();
+    configIn_B = pipeline_B.create<dai::node::XLinkIn>();
+    pipeline_B.setXLinkChunkSize(0); // チャンクサイズ設定
+    */
     manip_l_B = pipeline_B.create<dai::node::ImageManip>();
     manip_r_B = pipeline_B.create<dai::node::ImageManip>();
     manip_hanten = pipeline.create<dai::node::ImageManip>();
     manip_hanten_B = pipeline_B.create<dai::node::ImageManip>();
+    // script_B = pipeline_B.create<dai::node::Script>();
 #endif
 
-    // ***************************************************
-    // *************** プロパティを設定 ***************
-    // ***************************************************
-    /* Properties
+    // Properties
+    if (p720p_on)
+    {
+        monoLeft->setResolution(dai::MonoCameraProperties::SensorResolution::THE_720_P);
+        monoRight->setResolution(dai::MonoCameraProperties::SensorResolution::THE_720_P);
+    }
+    else
+    {
+        monoLeft->setResolution(dai::MonoCameraProperties::SensorResolution::THE_400_P);
+        monoRight->setResolution(dai::MonoCameraProperties::SensorResolution::THE_400_P);
+    }
     monoLeft->setBoardSocket(dai::CameraBoardSocket::LEFT);
     monoRight->setBoardSocket(dai::CameraBoardSocket::RIGHT);
     monoLeft->setIsp3aFps(Isp3aFps);
@@ -2442,7 +2443,6 @@ int main(int argc, char *argv[])
     camRgb->setColorOrder(dai::ColorCameraProperties::ColorOrder::RGB);
     camRgb->setFps(fps_Rgb);
     camRgb->setIsp3aFps(Isp3aFps_Rgb);
-    */
 
     auto depthPresetMode = dai::node::StereoDepth::PresetMode::FAST_ACCURACY; //(V3)
     depth->setDefaultProfilePreset(depthPresetMode);                       // HIGH_ACCURACY/HIGH_DENSITY/DEFAULT/FACE/HIGH_DETAIL/ROBOTICS);
@@ -2460,7 +2460,7 @@ int main(int argc, char *argv[])
     depth->setSubpixel(subpixel);                    // サブピクセル補間（5小数ビット）で視差を計算します。長距離射撃に適しています。現在、拡張された視差と互換性がありません
     // サブピクセル精度の小数点以下のビット数を設定
     // 例: 3ビットに設定 (0.125ピクセル単位の精度)
-    depth->setSubpixelFractionalBits(3);  // ★ここが設定する場所です
+    // depth->setSubpixelFractionalBits(3);  // ★ここが設定する場所です
     // depth->initialConfig.setBilateralFilterSigma(setBilateralFil); // パラメータの値が大きいほど、ピクセル近傍内のより遠い色が混合され、半等しい色の領域が大きくなります。0..65535
     // (V2) depth->initialConfig.setLeftRightCheckThreshold(c_setLeftRightCheckThreshold);
     depth->initialConfig->setLeftRightCheckThreshold(c_setLeftRightCheckThreshold);
@@ -2468,14 +2468,23 @@ int main(int argc, char *argv[])
     // depth->setOutputDisparity(true);
 
 #if (double_camera == true)
-    /* camera_B Properties
+    // camera_B Properties
+    if (p720p_2_on)
+    {
+        monoLeft_B->setResolution(dai::MonoCameraProperties::SensorResolution::THE_720_P);
+        monoRight_B->setResolution(dai::MonoCameraProperties::SensorResolution::THE_720_P);
+    }
+    else
+    {
+        monoLeft_B->setResolution(dai::MonoCameraProperties::SensorResolution::THE_400_P);
+        monoRight_B->setResolution(dai::MonoCameraProperties::SensorResolution::THE_400_P);
+    }
     monoLeft_B->setBoardSocket(dai::CameraBoardSocket::LEFT);
     monoRight_B->setBoardSocket(dai::CameraBoardSocket::RIGHT);
     monoLeft_B->setIsp3aFps(Isp3aFps);
     monoRight_B->setIsp3aFps(Isp3aFps);
     monoLeft_B->setFps(fps_mono);
     monoRight_B->setFps(fps_mono);
-    */
 
     /*
     camRgb_B->setPreviewSize(640, 400);
@@ -2499,7 +2508,7 @@ int main(int argc, char *argv[])
     depth_B->setSubpixel(subpixel);                    // サブピクセル補間（5小数ビット）で視差を計算します。長距離射撃に適しています。現在、拡張された視差と互換性がありません
     // サブピクセル精度の小数点以下のビット数を設定
     // 例: 3ビットに設定 (0.125ピクセル単位の精度)
-    depth_B->setSubpixelFractionalBits(3);  // ★ここが設定する場所です
+    // depth_B->setSubpixelFractionalBits(3);  // ★ここが設定する場所です
     // depth_B->initialConfig.setBilateralFilterSigma(setBilateralFil); // パラメータの値が大きいほど、ピクセル近傍内のより遠い色が混合され、半等しい色の領域が大きくなります。0..65535
     // (V2) depth_B->initialConfig.setLeftRightCheckThreshold(c_setLeftRightCheckThreshold);
     depth_B->initialConfig->setLeftRightCheckThreshold(c_setLeftRightCheckThreshold); //(V3)
@@ -2530,8 +2539,8 @@ int main(int argc, char *argv[])
     // dai::Rect(topLeft, bottomRight) でクロップ領域を定義し、normalizedCoords を true に設定 V2->V3
     manip_l->initialConfig->addCrop(dai::Rect(topLeft, bottomRight), true); // V2->V3
     manip_r->initialConfig->addCrop(dai::Rect(topLeft, bottomRight), true); // V2->V3
-    // manip_l->setMaxOutputFrameSize(monoRight->getResolutionHeight() * monoRight->getResolutionWidth() * 1); //V2->V3
-    // manip_r->setMaxOutputFrameSize(monoRight->getResolutionHeight() * monoRight->getResolutionWidth() * 1); //V2->V3
+    manip_l->setMaxOutputFrameSize(monoRight->getResolutionHeight() * monoRight->getResolutionWidth() * 1);
+    manip_r->setMaxOutputFrameSize(monoRight->getResolutionHeight() * monoRight->getResolutionWidth() * 1);
     // Resize image
     //manip_l->initialConfig.setResize(ax_width, 400);
     //manip_r->initialConfig.setResize(ax_width, 400);
@@ -2560,8 +2569,8 @@ int main(int argc, char *argv[])
     // dai::Rect(topLeft, bottomRight) でクロップ領域を定義し、normalizedCoords を true に設定 V2->V3
     manip_l_B->initialConfig->addCrop(dai::Rect(topLeft, bottomRight), true); // V2->V3
     manip_r_B->initialConfig->addCrop(dai::Rect(topLeft, bottomRight), true); // V2->V3
-    // manip_l_B->setMaxOutputFrameSize(monoRight->getResolutionHeight() * monoRight->getResolutionWidth() * 1); //V2->V3
-    // manip_r_B->setMaxOutputFrameSize(monoRight->getResolutionHeight() * monoRight->getResolutionWidth() * 1); //V2->V3
+    manip_l_B->setMaxOutputFrameSize(monoRight->getResolutionHeight() * monoRight->getResolutionWidth() * 1);
+    manip_r_B->setMaxOutputFrameSize(monoRight->getResolutionHeight() * monoRight->getResolutionWidth() * 1);
     // Resize image
     // manip_l_B->initialConfig.setResize((int)(16 * 16), 400);
     // manip_r_B->initialConfig.setResize((int)(16 * 16), 400);
@@ -2599,6 +2608,17 @@ int main(int argc, char *argv[])
     depth->initialConfig.set(config);
     */
 
+    /* V2->V3
+    xout->setStreamName("disparity");
+    xoutRgb->setStreamName("rgb");
+    xoutRgb->input.setBlocking(false);
+    xoutRgb->input.setQueueSize(1);
+
+    controlIn_mono->setStreamName("control_mono");
+    controlIn_Rgb->setStreamName("control_Rgb");
+    controlIn_script->setStreamName("control_script");
+    configIn->setStreamName("config");
+    */
     // xout_mono->setStreamName("mono");
     // xoutconfidenceMap->setStreamName("confidenceMap");
     // xoutrectifiedLeft->setStreamName("rectifiedLeft");
@@ -2606,6 +2626,9 @@ int main(int argc, char *argv[])
 #if (double_camera == true)
     /* V2->V3
     xout_B->setStreamName("disparity_B");
+    // xoutRgb_B->input.setBlocking(false);
+    // xoutRgb_B->input.setQueueSize(1);
+    // xoutRgb_B->setStreamName("rgb_B");
 
     controlIn_mono_B->setStreamName("control_mono_B");
     // controlIn_Rgb_B->setStreamName("control_Rgb_B");
@@ -2619,7 +2642,6 @@ int main(int argc, char *argv[])
     manip_l->initialConfig.setResize(416, 416);
     manip_r->initialConfig.setResize(416, 416);
 #endif
-    
     script->setScript(R"(
     # Initially send still event
     while True:
@@ -2660,36 +2682,31 @@ int main(int argc, char *argv[])
     //
 #endif
 
-    // ***************************************************
-    // *************** リンクを設定 ***************
-    // ***************************************************
     // Linking
-    monoLeft->requestOutput({ 256, 400 }, dai::ImgFrame::Type::NV12,
-        dai::ImgResizeMode::CROP, 200)->link(manip_l->inputImage); //V3
-    monoRight->requestOutput({ 256, 400 }, dai::ImgFrame::Type::NV12,
-        dai::ImgResizeMode::CROP, 200)->link(manip_r->inputImage); //V3
-
-    camRgb->requestOutput((std::make_pair(640, 400)))->link(script->inputs["frames"]); //V3
-
-    //controlIn_script->out.link(script->inputs["control_script"]);
-    //controlIn_mono->out.link(monoRight->inputControl);
-    //controlIn_mono->out.link(monoLeft->inputControl);
-    //controlIn_Rgb->out.link(camRgb->inputControl);
-    //configIn->out.link(manip_l->inputConfig);
-    //configIn->out.link(manip_r->inputConfig);
-    // script->outputs["stream1"].link(xoutRgb->input);
+    monoLeft->out.link(manip_l->inputImage);
+    monoRight->out.link(manip_r->inputImage);
+    // monoLeft->out.link(xout_mono->input);
+    // depth->disparity.link(xout->input);
+    camRgb->preview.link(script->inputs["frames"]);
+    /* V2->V3
+    controlIn_script->out.link(script->inputs["control_script"]);
+    controlIn_mono->out.link(monoRight->inputControl);
+    controlIn_mono->out.link(monoLeft->inputControl);
+    controlIn_Rgb->out.link(camRgb->inputControl);
+    configIn->out.link(manip_l->inputConfig);
+    configIn->out.link(manip_r->inputConfig);
+    script->outputs["stream1"].link(xoutRgb->input);
+    */
+    // depth->disparity.link(xout->input);
+    //  depth->confidenceMap.link(xoutconfidenceMap->input);
 
     // ↓FPSを上げるにはコメントアウト
     // depth->rectifiedLeft.link(xoutrectifiedLeft->input);
 
 #if (double_camera == true)
     // camera_B Linking
-    monoLeft_B->requestOutput({ 256, 400 }, dai::ImgFrame::Type::NV12,
-        dai::ImgResizeMode::CROP, 200)->link(manip_l_B->inputImage); //V3
-    monoRight_B->requestOutput({ 256, 400 }, dai::ImgFrame::Type::NV12,
-        dai::ImgResizeMode::CROP, 200)->link(manip_r_B->inputImage); //V3
-    // monoLeft_B->out.link(manip_l_B->inputImage); // V2
-    // monoRight_B->out.link(manip_r_B->inputImage); // V2
+    monoLeft_B->out.link(manip_l_B->inputImage);
+    monoRight_B->out.link(manip_r_B->inputImage);
     /* V2->V3
     controlIn_mono_B->out.link(monoRight_B->inputControl);
     controlIn_mono_B->out.link(monoLeft_B->inputControl);
@@ -2733,25 +2750,6 @@ int main(int argc, char *argv[])
     // detectionNetwork->out.link(nnOut->input);
     // manip->out.link(detectionNetwork->input);
     // camRgb->preview.link(manip->inputImage);
-
-    /**********************************************************************************/
-    // キューの設定
-    /**********************************************************************************/
-    //mono_read_f
-    q_f = manip_hanten->out.createOutputQueue(); // NEW (v3)
-    buffer2 = std::make_shared<dai::Buffer>(); // V2->V3
-    qRgb = script->outputs["stream1"].createOutputQueue(1, false); // V2->V3
-    controlQueue_Rgb = camRgb->inputControl.createInputQueue(); // NEW (v3)
-    controlQueue_script = script->inputs["control_script"].createInputQueue(); // V3
-    controlQueue_mono_right = monoRight->inputControl.createInputQueue(); // V3
-    controlQueue_mono_left = monoLeft->inputControl.createInputQueue(); // V3
-    imuQueue = imu->out.createOutputQueue(1, false); // NEW (v3): IMUノードのoutポートから直接キューを作成
-
-    //mono_read_s
-    q_s = manip_hanten_B->out.createOutputQueue(); // NEW (v3)
-
-
-
     /*
     detNN=falseの場合
      +----------+
@@ -2871,7 +2869,7 @@ int main(int argc, char *argv[])
             basez.camera_center_y = 200 + (200 - basez.camera_center_y);
         }
     }
-    for (auto& sensor : device_B->getCameraSensorNames())
+    for (auto &sensor : device_B->getCameraSensorNames())
     {
         std::cout << "2_Socket: " << sensor.first << " - " << sensor.second << ", ";
         string input = sensor.second;
@@ -2892,6 +2890,8 @@ int main(int argc, char *argv[])
             auto xlinkOut = pipeline.create<dai::node::XLinkOut>();
             xlinkOut->setStreamName("imu");
         */
+        // グローバルで宣言したimu変数を初期化
+        imu = pipeline.create<dai::node::IMU>(); // NEW (v3): ノードタイプを明示
 
         // enable ACCELEROMETER_RAW at 500 hz rate
         imu->enableIMUSensor(dai::IMUSensor::ACCELEROMETER_RAW, 30);
@@ -2923,9 +2923,6 @@ int main(int argc, char *argv[])
         */
     }
 #endif
-    // ***********************************************************************************************/
-    // * パイプラインの開始                                                                           */
-    // ***********************************************************************************************/
     //device->startPipeline(pipeline);
     pipeline.start();
 #if (double_camera == true)
@@ -2958,7 +2955,7 @@ int main(int argc, char *argv[])
     LOG_INFO.printf("Setting manual exposure  MONO_B , time: %d, iso: %d", exp_time_mono_B, sens_iso_mono_B);
     autoex_mono = true;
 
-    // LOG_INFO.printf("FPS=%.1f", monoLeft->getFps());
+    LOG_INFO.printf("FPS=%.1f", monoLeft->getFps());
     PLOG_INFO.printf("usbspeed:%d", device->getUsbSpeed());
 #if (double_camera == true)
     if ((int)device->getUsbSpeed() == 4 && (int)device_B->getUsbSpeed() == 4)
@@ -3030,6 +3027,9 @@ int Judgment_main(std::shared_ptr<dai::Device> &device, std::shared_ptr<dai::Dev
     mono_read_lock_f = true;
     mono_read_lock_s = true;
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    // controlQueue_mono = device.getInputQueue(controlIn_mono->getStreamName()); //V2
+    controlQueue_mono_right = monoRight->inputControl.createInputQueue(); // V3
+    controlQueue_mono_left = monoLeft->inputControl.createInputQueue(); // V3
     // ctrl_mono.setAutoExposureLimit(1000);
     // ctrl_mono.setAutoWhiteBalanceLock(true);
     ctrl_mono.setAutoFocusMode(dai::CameraControl::AutoFocusMode::OFF); //Members:    OFF    AUTO    MACRO    CONTINUOUS_VIDEO    CONTINUOUS_PICTURE    EDOF
@@ -4335,15 +4335,18 @@ int Judgment_main(std::shared_ptr<dai::Device> &device, std::shared_ptr<dai::Dev
 void mono_read_f(std::shared_ptr<dai::Device> &device3)
 {
     LOG_NONE.printf("start mono_read_f()");
+    // (V2)     std::shared_ptr<dai::DataOutputQueue> q;
+    // q = device3.getOutputQueue("disparity", 32, true); //trueでバッファ少なすぎるとハングする(v2)
+    // リンクは不要。代わりにノードから直接出力キューを作成 (v3)
+    std::shared_ptr<dai::MessageQueue> q = manip_hanten->out.createOutputQueue(); // NEW (v3)
     // 時間同期の設定
     std::chrono::milliseconds syncPeriod(1000); // 100msごとに同期
     int numSamples = 10;                        // 同期に使うサンプル数
     bool random = false;                        // ランダムな揺らぎはなし
-    // device3->setTimesync(syncPeriod, numSamples, random);
-    /* auto initialFrame = q_f->get<dai::ImgFrame>();
+    device3->setTimesync(syncPeriod, numSamples, random);
+    auto initialFrame = q->get<dai::ImgFrame>();
     auto initialTs_f = initialFrame->getTimestamp();
     initialTs_ms_f = std::chrono::duration_cast<std::chrono::milliseconds>(initialTs_f.time_since_epoch()).count();
-    */
     // リサイズ後の画像を格納する変数
     cv::Mat resizedImage;
 
@@ -4354,6 +4357,14 @@ void mono_read_f(std::shared_ptr<dai::Device> &device3)
     printf("roi x:%d,%d\n", a, b);
     cv::Rect roi(a, 0, b, 400);
 
+    // (V2)     std::shared_ptr<dai::DataOutputQueue> qRgb;
+    std::shared_ptr<dai::MessageQueue> qRgb; // NEW (v3 に合わせた宣言、または v2 API の戻り値型)
+    std::shared_ptr<dai::Buffer> buffer2 = std::make_shared<dai::Buffer>(); // V2->V3
+    qRgb = script->outputs["stream1"].createOutputQueue(1, false); // V2->V3
+    // controlQueue_Rgb = device3.getInputQueue(controlIn_Rgb->getStreamName()); ///V2
+    controlQueue_Rgb = camRgb->inputControl.createInputQueue(); // NEW (v3)
+    // (V2) controlQueue_script = device3.getInputQueue(controlIn_script->getStreamName());
+    controlQueue_script = script->inputs["control_script"].createInputQueue(); // V3
     LOG_INFO.printf("Setting manual exposure  Rgb , time: %d, iso: %d", exp_time_Rgb, sens_iso_Rgb);
     ctrl_Rgb.setAutoExposureEnable();
     ctrl_Rgb.setAutoWhiteBalanceLock(true);
@@ -4370,7 +4381,7 @@ void mono_read_f(std::shared_ptr<dai::Device> &device3)
         {
             continue; //判定中以外は読み込ませる（打者検知のため）
         }
-        inDepth_f = q_f->tryGet<dai::ImgFrame>();
+        inDepth_f = q->tryGet<dai::ImgFrame>();
         if (inDepth_f)
         {
             if (p720p_on)
@@ -4459,20 +4470,19 @@ void mono_read_f(std::shared_ptr<dai::Device> &device3)
 void mono_read_s(std::shared_ptr<dai::Device> &device3)
 {
     LOG_NONE.printf("start mono_read_s()");
+    // (V2)     std::shared_ptr<dai::DataOutputQueue> q;
+    // q = device3.getOutputQueue("disparity_B", 32, true); //trueでバッファ少なすぎるとハングする(v2)
+    // リンクは不要。代わりにノードから直接出力キューを作成 (v3)
+    std::shared_ptr<dai::MessageQueue> q = manip_hanten_B->out.createOutputQueue(); // NEW (v3)
 
     // 時間同期の設定
     std::chrono::milliseconds syncPeriod(1000); // 100msごとに同期
     int numSamples = 10;                        // 同期に使うサンプル数
     bool random = false;                        // ランダムな揺らぎはなし
-    printf("\naaa\n");
-    // device3->setTimesync(syncPeriod, numSamples, random);
-    printf("\nbbb\n");
-    auto initialFrame = q_s->get<dai::ImgFrame>();
-    printf("\nccc\n");
+    device3->setTimesync(syncPeriod, numSamples, random);
+    auto initialFrame = q->get<dai::ImgFrame>();
     auto initialTs_s = initialFrame->getTimestamp();
-    printf("\nddd\n");
     initialTs_ms_s = std::chrono::duration_cast<std::chrono::milliseconds>(initialTs_s.time_since_epoch()).count();
-    printf("\neee\n");
 
     // リサイズ後の画像を格納する変数
     cv::Mat resizedImage;
@@ -4493,7 +4503,7 @@ void mono_read_s(std::shared_ptr<dai::Device> &device3)
         {
             continue; //判定中以外は読み込ませる（打者検知のため）
         }
-        inDepth_s = q_s->tryGet<dai::ImgFrame>();
+        inDepth_s = q->tryGet<dai::ImgFrame>();
         if (inDepth_s)
         {
             if (p720p_2_on)
@@ -4669,6 +4679,8 @@ void img_key(std::shared_ptr<dai::Device> &device2)
     if (imu_use)
     {
         bool firstTs = false;
+        // (V2) imuQueue = device2.getOutputQueue("imu", 1, false);
+        imuQueue = imu->out.createOutputQueue(1, false); // NEW (v3): IMUノードのoutポートから直接キューを作成
         auto baseTs = std::chrono::time_point<std::chrono::steady_clock, std::chrono::steady_clock::duration>();
     }
 #endif
